@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}{{ recipe.title }}{% endblock %}
+{% block content %}
+
+<style>
+.recipe-top {
+    display: flex;
+    gap: 50px;
+    margin-bottom: 30px;
+}
+
+.recipe-card-img {
+    position: relative;
+    width: 300px;
+    border-radius: var(--border-radius-main);
+    overflow: hidden;
+}
+
+.recipe-card-img img {
+    width: 100%;
+    height: 360px;
+    object-fit: cover;
+}
+
+.recipe-card-name {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    background: rgba(255,255,255,0.88);
+    text-align: center;
+    font-weight: 700;
+    padding: 10px;
+}
+
+.recipe-card-meta {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    background: rgba(0,0,0,0.45);
+    color: white;
+    text-align: center;
+    padding: 10px;
+}
+
+.recipe-info { flex: 1; }
+
+.recipe-ingredients {
+    background: white;
+    border-radius: var(--border-radius-main);
+    padding: 20px 28px;
+    margin-bottom: 30px;
+}
+
+</style>
+
+<div class="recipe-page">
+
+    <div class="recipe-top">
+
+        <div class="recipe-card-img">
+            <div class="recipe-card-name">{{ recipe.title }}</div>
+            <img src="{{ url_for('static', path='/images/' + recipe.image) }}" alt="{{ recipe.title }}">
+            <div class="recipe-card-meta">
+                <span>Час приготування : {{ recipe.time }}</span>
+                <span>Ккал : {{ recipe.kcal }}</span>
+            </div>
+        </div>
+
+        <div class="recipe-info">
+            <div class="recipe-rating">
+                <h1>Загальна оцінка: {{ recipe.rating }}</h1>
+            </div>
+
+            <div class="recipe-steps">
+                <p class="steps-title">Кроки приготування:</p>
+                <ol>
+                    {% for step in recipe.steps %}
+                    <li>{{ step }}</li>
+                    {% endfor %}
+                </ol>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="recipe-ingredients">
+        <p class="ingredients-title">Інгредієнти ({{ recipe.servings }} порція):</p>
+        <ul>
+            {% for ingredient in recipe.ingredients %}
+            <li>{{ ingredient }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+
+</div>
+
+{% endblock %}
