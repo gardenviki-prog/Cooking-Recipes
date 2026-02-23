@@ -5,3 +5,4 @@ __pycache__/
 .env
 *.log
 database.db
+seed.py
