@@ -3,85 +3,29 @@
 {% block content %}
 
 <style>
-.search-container {
-    max-width: 600px;
-    margin: 40px auto;
-    display: flex;
-    gap: 10px;
-}
+.search-container { max-width: 600px; margin: 40px auto 10px auto; display: flex; gap: 10px; }
+.search-input { flex: 1; padding: 12px 20px; border: 2px solid #b8a080; border-radius: 25px; font-size: 16px; outline: none; }
+.search-btn { padding: 12px 25px; background: #b8a080; color: white; border: none; border-radius: 25px; cursor: pointer; font-weight: 600; }
 
-.search-input {
-    flex: 1;
-    padding: 12px 20px;
-    border: 2px solid #b8a080;
-    border-radius: 25px;
-    font-size: 16px;
-    outline: none;
-}
+.section-title { text-align: center; color: #4a3b2b; margin: 30px 0 20px 0; font-size: 28px; font-weight: bold; }
+.section-title::after { content: ''; display: block; width: 60px; height: 3px; background: #b8a080; margin: 10px auto; }
 
-.search-btn {
-    padding: 12px 25px;
-    background: #b8a080;
-    color: white;
-    border: none;
-    border-radius: 25px;
-    cursor: pointer;
-    font-weight: 600;
-}
-
-.dishes-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 30px;
-    padding: 20px 0;
-}
-
-.dish-card {
-    background: white;
-    border-radius: var(--border-radius-main, 15px);
-    overflow: hidden;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-    transition: transform 0.2s;
-    text-decoration: none;
-    color: inherit;
-}
-
-.dish-card:hover {
-    transform: translateY(-5px);
-}
-
-.dish-img {
-    width: 100%;
-    height: 200px;
-    object-fit: cover;
-}
-
-.dish-info {
-    padding: 20px;
-}
-
-.dish-info h3 {
-    margin: 0 0 10px 0;
-    font-size: 20px;
-}
-
-.dish-meta {
-    display: flex;
-    justify-content: space-between;
-    color: #666;
-    font-size: 14px;
-}
-
-.rating-badge {
-    color: #b8a080;
-    font-weight: bold;
-}
+.dishes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 30px; padding: 20px 0; }
+.dish-card { background: white; border-radius: 15px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05); transition: 0.2s; text-decoration: none; color: inherit; display: block; }
+.dish-card:hover { transform: translateY(-5px); }
+.dish-img { width: 100%; height: 200px; object-fit: cover; }
+.dish-info { padding: 20px; }
+.dish-info h3 { margin: 0 0 10px 0; font-size: 20px; }
+.dish-meta { display: flex; justify-content: space-between; color: #666; font-size: 14px; align-items: center; }
+.rating-badge { color: #b8a080; font-weight: bold; background: #fdf6ec; padding: 2px 8px; border-radius: 10px; }
 </style>
 
 <form action="/" method="get" class="search-container">
     <input type="text" name="q" class="search-input" placeholder="Яку страву шукаємо?" value="{{ search_query or '' }}">
     <button type="submit" class="search-btn">Пошук</button>
 </form>
+
+<h2 class="section-title">Рекомендовані страви</h2>
 
 <div class="dishes-grid">
     {% for dish in dishes %}
@@ -91,12 +35,14 @@
             <h3>{{ dish.name }}</h3>
             <div class="dish-meta">
                 <span>{{ dish.cooking_time }} хв</span>
-                <span class="rating-badge">{{ dish.rating }} / 10</span>
+                {% if dish.rating > 0 %}
+                <span class="rating-badge">⭐ {{ dish.rating }} / 10</span>
+                {% endif %}
             </div>
         </div>
     </a>
     {% else %}
-    <p style="text-align: center; grid-column: 1/-1;">На жаль, за вашим запитом нічого не знайдено. 🤔</p>
+    <p style="text-align: center; grid-column: 1/-1;">На жаль, за вашим запитом нічого не знайдено.</p>
     {% endfor %}
 </div>
 

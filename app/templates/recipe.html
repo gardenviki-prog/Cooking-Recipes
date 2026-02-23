@@ -3,82 +3,64 @@
 {% block content %}
 
 <style>
-.recipe-top { display: flex; gap: 50px; margin-bottom: 30px; }
-.recipe-card-img { position: relative; width: 300px; border-radius: var(--border-radius-main); overflow: hidden; }
-.recipe-card-img img { width: 100%; height: 360px; object-fit: cover; }
-.recipe-card-name { position: absolute; top: 0; left: 0; right: 0; background: rgba(255,255,255,0.88); text-align: center; font-weight: 700; padding: 10px; }
-.recipe-card-meta { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.45); color: white; text-align: center; padding: 10px; }
-.recipe-info { flex: 1; }
-.recipe-ingredients { background: white; border-radius: var(--border-radius-main); padding: 20px 28px; margin-bottom: 30px; }
-
-/* Стилі для секції відгуків */
-.reviews-section { background: white; border-radius: var(--border-radius-main); padding: 20px 28px; margin-top: 30px; }
-.review-item { border-bottom: 1px solid #eee; padding: 15px 0; }
-.review-item:last-child { border-bottom: none; }
-.btn-review { display: inline-block; padding: 10px 20px; background: #b8a080; color: white; text-decoration: none; border-radius: 8px; margin-top: 15px; transition: background 0.2s; }
-.btn-review:hover { background: #a08060; }
+.recipe-container { max-width: 900px; margin: 40px auto; background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+.recipe-header { display: flex; flex-wrap: wrap; background: #faf7f2; }
+.recipe-image { width: 45%; min-width: 300px; object-fit: cover; min-height: 400px; }
+.recipe-header-info { padding: 40px; flex: 1; min-width: 300px; display: flex; flex-direction: column; justify-content: center; }
+.recipe-stats { display: flex; gap: 15px; margin: 20px 0; }
+.stat-item { background: white; padding: 10px; border-radius: 10px; text-align: center; flex: 1; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+.stat-value { display: block; font-weight: bold; color: #b8a080; font-size: 18px; }
+.stat-label { font-size: 12px; color: #888; text-transform: uppercase; }
+.recipe-body { padding: 40px; display: grid; grid-template-columns: 1fr 1.5fr; gap: 40px; }
+@media (max-width: 768px) { .recipe-body { grid-template-columns: 1fr; } .recipe-image { width: 100%; } }
+.ingredients-list { list-style: none; padding: 0; }
+.ingredients-list li { padding: 10px 0; border-bottom: 1px solid #eee; }
+.steps-list { padding-left: 20px; }
+.steps-list li { margin-bottom: 15px; line-height: 1.6; }
+.btn-review { display: inline-block; background: #b8a080; color: white; padding: 12px 25px; border-radius: 25px; text-decoration: none; font-weight: bold; margin-top: 20px; text-align: center; }
 </style>
 
-<div class="recipe-page">
-
-    <div class="recipe-top">
-        <div class="recipe-card-img">
-            <div class="recipe-card-name">{{ dish.name }}</div>
-            <img src="{{ url_for('static', path='images/' + dish.image) }}" alt="{{ dish.name }}">
-            <div class="recipe-card-meta">
-                <span>Час приготування : {{ dish.cooking_time }} хв</span>
-                <span>Ккал : {{ dish.calories }}</span>
+<div class="recipe-container">
+    <div class="recipe-header">
+        <img src="{{ url_for('static', path='images/' + dish.image) }}" alt="{{ dish.name }}" class="recipe-image">
+        <div class="recipe-header-info">
+            <h1>{{ dish.name }}</h1>
+            <div class="recipe-stats">
+                <div class="stat-item"><span class="stat-value">{{ dish.cooking_time }}</span><span class="stat-label">хв</span></div>
+                <div class="stat-item"><span class="stat-value">{{ dish.calories }}</span><span class="stat-label">ккал</span></div>
+                <div class="stat-item"><span class="stat-value">{{ dish.servings }}</span><span class="stat-label">порції</span></div>
             </div>
-        </div>
-
-        <div class="recipe-info">
-            <div class="recipe-rating">
-                <h1>Загальна оцінка: {{ dish.rating }} / 10</h1>
-            </div>
-
-            <div class="recipe-steps">
-                <p class="steps-title">Кроки приготування:</p>
-                <ol>
-                    {% for step in steps %}
-                    <li>{{ step }}</li>
-                    {% endfor %}
-                </ol>
-            </div>
+            <h3>
+                {% if dish.rating > 0 %}
+                    Середня оцінка: {{ dish.rating }} / 10
+                {% else %}
+                    Оцінок ще немає
+                {% endif %}
+            </h3>
+            <a href="/recipe/{{ dish.id }}/review" class="btn-review">Залишити відгук</a>
         </div>
     </div>
 
-    <div class="recipe-ingredients">
-        <p class="ingredients-title">Інгредієнти ({{ dish.servings }} порції):</p>
-        <ul>
-            {% for ingredient in ingredients %}
-            <li>{{ ingredient }}</li>
-            {% endfor %}
-        </ul>
+    <div class="recipe-body">
+        <div>
+            <h3>Інгредієнти</h3>
+            <ul class="ingredients-list">
+                {% for item in ingredients %}
+                    {% if item.strip() %}<li>{{ item.strip() }}</li>{% endif %}
+                {% endfor %}
+            </ul>
+        </div>
+        <div>
+            <h3>Кроки приготування</h3>
+            <ol class="steps-list">
+                {% for step in steps %}
+                    {% if step.strip() %}
+                        <li>{{ step.strip() }}</li>
+                    {% endif %}
+                {% endfor %}
+            </ol>
+        </div>
     </div>
-
-    <div class="reviews-section">
-        <h2>Відгуки</h2>
-
-        {% if reviews %}
-            {% for review in reviews %}
-            <div class="review-item">
-                <strong>{{ review.author.username }}</strong> (Оцінка: {{ review.rating }}/10)
-                <p style="margin-top: 8px;">{{ review.text }}</p>
-            </div>
-            {% endfor %}
-        {% else %}
-            <p>Поки що немає відгуків. Будьте першим!</p>
-        {% endif %}
-
-        <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
-
-        {% if user %}
-            <a href="/recipe/{{ dish.id }}/review" class="btn-review">Написати відгук</a>
-        {% else %}
-            <p>Щоб залишити відгук, будь ласка, <a href="/login" style="color: #b8a080; font-weight: bold;">увійдіть в акаунт</a>.</p>
-        {% endif %}
-    </div>
-
 </div>
 
 {% endblock %}

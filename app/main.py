@@ -41,7 +41,7 @@ async def home(request: Request, q: str = None, db: Session = Depends(get_db)):
     if q:
         query = query.filter(models.Dish.name.ilike(f"%{q}%"))
 
-    dishes = query.all()
+    dishes = query.order_by(models.Dish.rating.desc()).all()
 
     return templates.TemplateResponse("index.html", {
         "request": request,
@@ -108,9 +108,10 @@ def add_review(
     db.commit()
 
     all_reviews = db.query(models.Review).filter(models.Review.dish_id == dish.id).all()
-    total_rating = sum(r.rating for r in all_reviews)
-    dish.rating = round(total_rating / len(all_reviews), 1)
-    db.commit()
+    if all_reviews:
+        total_rating = sum(r.rating for r in all_reviews)
+        dish.rating = round(total_rating / len(all_reviews), 1)
+        db.commit()
 
     return RedirectResponse(url=f"/recipe/{dish_id}", status_code=303)
 
