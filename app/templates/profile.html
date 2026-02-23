@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% block title %}Профіль{% endblock %}
+{% block content %}
+
+<style>
+.profile-box {
+    max-width: 420px;
+    margin: 60px auto;
+    background: white;
+    border-radius: var(--border-radius-main);
+    padding: 40px;
+}
+
+.profile-box h1 {
+    text-align: center;
+    margin-bottom: 6px;
+}
+
+.profile-username {
+    text-align: center;
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 30px;
+    color: #5a4a38;
+}
+
+.profile-box h2 {
+    font-size: 16px;
+    margin-bottom: 16px;
+    color: #888;
+}
+
+.profile-box input {
+    width: 100%;
+    padding: 10px 14px;
+    margin-bottom: 14px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 15px;
+}
+
+.profile-box button {
+    width: 100%;
+    padding: 11px;
+    background: #b8a080;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    cursor: pointer;
+    margin-bottom: 10px;
+}
+
+.profile-box button:hover {
+    background: #a08060;
+}
+
+.btn-logout {
+    width: 100%;
+    padding: 11px;
+    background: white;
+    color: #a05040;
+    border: 1px solid #a05040;
+    border-radius: 8px;
+    font-size: 15px;
+    cursor: pointer;
+    text-align: center;
+    display: block;
+    text-decoration: none;
+}
+
+.btn-logout:hover {
+    background: #fff0ee;
+}
+
+.profile-box .error {
+    color: red;
+    margin-bottom: 14px;
+    text-align: center;
+}
+
+.profile-box .success {
+    color: green;
+    margin-bottom: 14px;
+    text-align: center;
+}
+
+.divider {
+    border: none;
+    border-top: 1px solid #eee;
+    margin: 24px 0;
+}
+</style>
+
+<div class="profile-box">
+    <h1>Профіль</h1>
+    <div class="profile-username">{{ user.username }}</div>
+
+    {% if message %}
+        <p class="success">{{ message }}</p>
+    {% endif %}
+    {% if error %}
+        <p class="error">{{ error }}</p>
+    {% endif %}
+
+    <h2>Змінити пароль</h2>
+
+    <form method="post" action="/profile/change-password">
+        <input type="password" name="old_password" placeholder="Поточний пароль" required>
+        <input type="password" name="new_password" id="new_password" placeholder="Новий пароль" required>
+        <input type="password" name="new_password2" id="new_password2" placeholder="Повторіть новий пароль" required>
+        <button type="submit">Зберегти пароль</button>
+    </form>
+
+    <hr class="divider">
+
+    <a href="/logout" class="btn-logout">Вийти з акаунту</a>
+</div>
+
+<script>
+    document.querySelector('form').addEventListener('submit', function(e) {
+        const p1 = document.getElementById('new_password').value;
+        const p2 = document.getElementById('new_password2').value;
+        if (p1 !== p2) {
+            e.preventDefault();
+            alert('Нові паролі не співпадають!');
+        }
+    });
+</script>
+
+{% endblock %}
