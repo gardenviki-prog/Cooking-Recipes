@@ -1,4 +1,8 @@
-from fastapi import FastAPI, Request, Depends, Form
+import os
+import shutil
+import uuid
+
+from fastapi import FastAPI, Request, Depends, Form, UploadFile, File
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import RedirectResponse
@@ -194,3 +198,58 @@ def change_password(
     user.hashed_password = hash_password(new_password)
     db.commit()
     return templates.TemplateResponse("profile.html", {"request": request, "user": user, "message": "Пароль змінено!"})
+
+# --- МАРШРУТИ ДЛЯ РЕДАГУВАННЯ ПРОФІЛЮ ---
+
+@app.get("/profile/edit")
+async def edit_profile_page(request: Request, db: Session = Depends(get_db)):
+    user = get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+    return templates.TemplateResponse("profile_edit.html", {"request": request, "user": user})
+
+@app.post("/profile/edit")
+def edit_profile(
+    request: Request,
+    username: str = Form(...),
+    email: str = Form(""),
+    goals: list[str] = Form(default=[]), # Змінено List[str] на list[str]
+    avatar: UploadFile = File(None),
+    db: Session = Depends(get_db)
+):
+    user = get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    if username != user.username:
+        existing_user = db.query(models.User).filter(models.User.username == username).first()
+        if existing_user:
+            return templates.TemplateResponse("profile_edit.html", {
+                "request": request, "user": user, "error": "Це ім'я користувача вже зайнято"
+            })
+        user.username = username
+        request.session["user"] = username
+
+    user.email = email
+    user.goals = ", ".join(goals)
+
+    if avatar and avatar.filename:
+        avatars_dir = "static/images/avatars"
+        os.makedirs(avatars_dir, exist_ok=True)
+
+        file_ext = avatar.filename.split(".")[-1]
+        unique_filename = f"{user.id}_{uuid.uuid4().hex}.{file_ext}"
+        file_path = os.path.join(avatars_dir, unique_filename)
+
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(avatar.file, buffer)
+
+        user.avatar = f"images/avatars/{unique_filename}"
+
+    db.commit()
+
+    return templates.TemplateResponse("profile_edit.html", {
+        "request": request,
+        "user": user,
+        "message": "Профіль успішно оновлено!"
+    })

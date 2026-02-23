@@ -6,9 +6,7 @@
     <title>{% block title %}Recipes{% endblock %}</title>
 
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
-
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
     <link rel="stylesheet" href="{{ url_for('static', path='/css/styles.css') }}">
 </head>
 <body>
@@ -23,9 +21,23 @@
         </div>
 
         <div class="header-right">
-            <a href="/profile" class="profile-link">
-                <i class="fa-regular fa-circle-user profile-icon"></i>
-            </a>
+            {% if user %}
+                <a href="/profile/edit" class="profile-link" title="Мій профіль" style="display: flex; align-items: center; text-decoration: none; color: inherit;">
+                    {% if user.avatar %}
+                        <img src="{{ url_for('static', path=user.avatar) }}" alt="Аватар" style="width: 35px; height: 35px; border-radius: 50%; object-fit: cover;">
+                    {% else %}
+                        <i class="fa-regular fa-circle-user profile-icon"></i>
+                    {% endif %}
+                </a>
+
+                <a href="/logout" class="profile-link" title="Вийти" style="margin-left: 15px; color: var(--text-main); font-size: 1.2rem;">
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                </a>
+            {% else %}
+                <a href="/login" class="profile-link" title="Увійти" style="color: var(--text-main);">
+                    <i class="fa-regular fa-circle-user profile-icon"></i>
+                </a>
+            {% endif %}
         </div>
     </header>
 
