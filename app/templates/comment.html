@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% block title %}Відгук на {{ dish.name }}{% endblock %}
+{% block content %}
+
+<style>
+body {
+    background-color: #fcece0;
+}
+
+.comment-wrapper {
+    max-width: 700px;
+    margin: 50px auto;
+    background-color: #faebd7;
+    border-radius: 20px;
+    padding: 40px 60px;
+    position: relative;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+}
+
+.comment-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.comment-header h1 {
+    font-family: 'Georgia', serif;
+    font-size: 36px;
+    margin-bottom: 5px;
+    color: #000;
+}
+
+.comment-header p {
+    font-size: 18px;
+    color: #444;
+    font-weight: 500;
+    margin-bottom: 10px;
+}
+
+.decorative-line {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 30px auto;
+    width: 60%;
+}
+.decorative-line::before, .decorative-line::after {
+    content: "◆";
+    font-size: 12px;
+    color: #000;
+}
+.decorative-line span {
+    flex: 1;
+    height: 2px;
+    background-color: #000;
+    margin: 0 5px;
+}
+
+.comment-form label {
+    display: block;
+    font-weight: bold;
+    font-size: 18px;
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.comment-form input[type="text"],
+.comment-form input[type="number"],
+.comment-form textarea {
+    width: 100%;
+    background-color: #fdf6f0;
+    border: 1px solid #777;
+    border-radius: 12px;
+    padding: 12px 15px;
+    font-size: 16px;
+    font-family: inherit;
+    box-sizing: border-box;
+}
+
+.form-group {
+    margin-bottom: 25px;
+}
+
+.comment-form textarea {
+    min-height: 100px;
+    resize: vertical;
+}
+
+.comment-form input[type="number"] {
+    width: 150px;
+}
+
+.rating-hint {
+    font-size: 14px;
+    color: #666;
+    font-weight: bold;
+    margin-top: 8px;
+    display: block;
+}
+
+.submit-btn {
+    display: block;
+    width: 200px;
+    margin: 30px auto 0 auto;
+    padding: 12px;
+    background-color: #333;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+}
+.submit-btn:hover { background-color: #555; }
+
+.bg-illustration-left {
+    position: absolute;
+    bottom: -20px;
+    left: -50px;
+    width: 150px;
+    opacity: 0.7;
+    pointer-events: none;
+}
+.bg-illustration-right {
+    position: absolute;
+    top: -30px;
+    right: -40px;
+    width: 200px;
+    opacity: 0.7;
+    pointer-events: none;
+}
+</style>
+
+<div class="comment-wrapper">
+    <div class="comment-header">
+        <h1>Вітаємо !</h1>
+        <p>Поділіться враженнями від страви</p>
+        <div class="decorative-line"><span></span></div>
+    </div>
+
+    <form class="comment-form" method="post" action="/recipe/{{ dish.id }}/review">
+
+        <div class="form-group">
+            <label>Назва страви:</label>
+            <input type="text" value="{{ dish.name }}" readonly>
+        </div>
+
+        <div class="form-group">
+            <label for="text">Ваш відгук:</label>
+            <textarea name="text" id="text" required></textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="rating">Загальна оцінка</label>
+            <input type="number" name="rating" id="rating" min="1" max="10" required>
+            <span class="rating-hint">1 - дуже погано, 10 - супер!</span>
+        </div>
+
+        <button type="submit" class="submit-btn">Надіслати відгук</button>
+    </form>
+</div>
+
+{% endblock %}
