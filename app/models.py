@@ -1,12 +1,14 @@
-from sqlalchemy import Column, Integer, String, Text, ForeignKey, Float
+from sqlalchemy import Column, Integer, String, Text, ForeignKey, Float, DateTime
 from sqlalchemy.orm import relationship
 from database import Base
+from datetime import datetime
 
 class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String(30), unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
+    avatar = Column(String, nullable=True) # Додано, якщо ти раніше не вносив
     reviews = relationship("Review", back_populates="author")
 
 class Dish(Base):
@@ -26,7 +28,8 @@ class Review(Base):
     __tablename__ = "reviews"
     id = Column(Integer, primary_key=True, index=True)
     rating = Column(Integer, nullable=False)
-    text = Column(Text, nullable=False)
+    text = Column(Text, nullable=True) # Змінено на True (необов'язково)
+    created_at = Column(DateTime, default=datetime.utcnow) # Нове поле для сортування
     user_id = Column(Integer, ForeignKey("users.id"))
     author = relationship("User", back_populates="reviews")
     dish_id = Column(Integer, ForeignKey("dishes.id"))

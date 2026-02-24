@@ -28,7 +28,12 @@ async def home(request: Request, q: str = None, db: Session = Depends(get_db)):
     })
 
 @router.get("/recipe/{dish_id}")
-async def recipe_page(request: Request, dish_id: int, db: Session = Depends(get_db)):
+async def recipe_page(
+    request: Request,
+    dish_id: int,
+    sort: str = "newest",
+    db: Session = Depends(get_db)
+):
     user = get_current_user(request, db)
     dish = db.query(models.Dish).filter(models.Dish.id == dish_id).first()
 
@@ -37,7 +42,17 @@ async def recipe_page(request: Request, dish_id: int, db: Session = Depends(get_
 
     ingredients_list = [i.strip() for i in dish.ingredients.split('\n') if i.strip()]
     steps_list = [s.strip() for s in dish.steps.split('\n') if s.strip()]
-    reviews = db.query(models.Review).filter(models.Review.dish_id == dish_id).all()
+
+    reviews_query = db.query(models.Review).filter(models.Review.dish_id == dish_id)
+
+    if sort == "highest":
+        reviews_query = reviews_query.order_by(models.Review.rating.desc())
+    elif sort == "lowest":
+        reviews_query = reviews_query.order_by(models.Review.rating.asc())
+    else:
+        reviews_query = reviews_query.order_by(models.Review.created_at.desc())
+
+    reviews = reviews_query.all()
 
     return templates.TemplateResponse("recipe.html", {
         "request": request,
@@ -45,5 +60,6 @@ async def recipe_page(request: Request, dish_id: int, db: Session = Depends(get_
         "dish": dish,
         "ingredients": ingredients_list,
         "steps": steps_list,
-        "reviews": reviews
+        "reviews": reviews,
+        "current_sort": sort
     })
