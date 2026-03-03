@@ -1,49 +1,741 @@
 {% extends "base.html" %}
-{% block title %}Головна - Світ Рецептів{% endblock %}
+{% block title %}Світ Рецептів{% endblock %}
 {% block content %}
 
-<style>
-.search-container { max-width: 600px; margin: 40px auto 10px auto; display: flex; gap: 10px; }
-.search-input { flex: 1; padding: 12px 20px; border: 2px solid #b8a080; border-radius: 25px; font-size: 16px; outline: none; }
-.search-btn { padding: 12px 25px; background: #b8a080; color: white; border: none; border-radius: 25px; cursor: pointer; font-weight: 600; }
+<div class="page-hero">
+    <h1 class="hero-title">Що приготуємо<br>сьогодні?</h1>
+    <p class="hero-sub">Знайдіть страву за назвою або оберіть інгредієнти, які є у вас вдома</p>
 
-.section-title { text-align: center; color: #4a3b2b; margin: 30px 0 20px 0; font-size: 28px; font-weight: bold; }
-.section-title::after { content: ''; display: block; width: 60px; height: 3px; background: #b8a080; margin: 10px auto; }
+    <form method="get" action="/" id="searchForm">
+        <div id="hiddenIngInputs">
+            {% for ing_id in selected_ing_ids %}
+                <input type="hidden" name="ing" value="{{ ing_id }}">
+            {% endfor %}
+        </div>
 
-.dishes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 30px; padding: 20px 0; }
-.dish-card { background: white; border-radius: 15px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05); transition: 0.2s; text-decoration: none; color: inherit; display: block; }
-.dish-card:hover { transform: translateY(-5px); }
-.dish-img { width: 100%; height: 200px; object-fit: cover; }
-.dish-info { padding: 20px; }
-.dish-info h3 { margin: 0 0 10px 0; font-size: 20px; }
-.dish-meta { display: flex; justify-content: space-between; color: #666; font-size: 14px; align-items: center; }
-.rating-badge { color: #b8a080; font-weight: bold; background: #fdf6ec; padding: 2px 8px; border-radius: 10px; }
-</style>
+        <div class="search-pill">
+            <svg class="search-pill__icon" xmlns="http://www.w3.org/2000/svg" fill="none"
+                 viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 1116.65 16.65z"/>
+            </svg>
+            <input type="text" name="q" class="search-pill__input"
+                   placeholder="Пошук страви..." value="{{ search_query or '' }}"
+                   autocomplete="off">
+            <div class="search-pill__divider"></div>
+            <button type="button" class="search-pill__filter-btn" id="ingToggleBtn"
+                    onclick="toggleIngDropdown()">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                     stroke-width="2" stroke="currentColor" width="17" height="17">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                          d="M3 6h18M7 12h10M11 18h2"/>
+                </svg>
+                <span id="filterLabel">Інгредієнти</span>
+                {% if selected_ing_ids %}
+                    <span class="filter-badge">{{ selected_ing_ids|length }}</span>
+                {% endif %}
+            </button>
+            <button type="submit" class="search-pill__submit">Знайти</button>
+        </div>
 
-<form action="/" method="get" class="search-container">
-    <input type="text" name="q" class="search-input" placeholder="Яку страву шукаємо?" value="{{ search_query or '' }}">
-    <button type="submit" class="search-btn">Пошук</button>
-</form>
+        <div class="ing-panel" id="ingPanel">
+            <div class="ing-panel__header">
+                <div class="ing-panel__search-wrap">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                         stroke-width="2" stroke="currentColor" width="15" height="15"
+                         style="opacity:.45; flex-shrink:0;">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                              d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 1116.65 16.65z"/>
+                    </svg>
+                    <input type="text" id="ingSearchInput" class="ing-panel__search"
+                           placeholder="Шукати інгредієнт..." oninput="filterIngredients(this.value)">
+                </div>
+                <div class="ing-panel__sort">
+                    <button type="button" class="sort-chip active" id="sortAlpha"
+                            onclick="sortIngredients('alpha')">А–Я</button>
+                    <button type="button" class="sort-chip" id="sortCount"
+                            onclick="sortIngredients('count')">Популярні</button>
+                </div>
+            </div>
 
-<h2 class="section-title">Рекомендовані страви</h2>
+            <div class="ing-panel__list" id="ingList">
+                {% for ing in all_ingredients %}
+                <label class="ing-row {% if ing.id in selected_ing_ids %}ing-row--checked{% endif %}"
+                       data-name="{{ ing.name|lower }}"
+                       data-count="{{ ing.dish_count }}"
+                       data-id="{{ ing.id }}">
+                    <span class="ing-row__check">
+                        <input type="checkbox"
+                               data-ing-id="{{ ing.id }}"
+                               class="ing-checkbox visually-hidden"
+                               {% if ing.id in selected_ing_ids %}checked{% endif %}>
+                        <span class="ing-row__box"></span>
+                    </span>
+                    <span class="ing-row__name">{{ ing.name }}</span>
+                    <span class="ing-row__pill">{{ ing.dish_count }}</span>
+                </label>
+                {% endfor %}
+            </div>
 
+            <div class="ing-panel__footer">
+                <button type="button" class="ing-btn ing-btn--ghost"
+                        onclick="clearIngredients()">Очистити</button>
+                <button type="button" class="ing-btn ing-btn--primary"
+                        onclick="applyIngredients()">
+                    Застосувати
+                    <span class="apply-count" id="applyCount"></span>
+                </button>
+            </div>
+        </div>
+    </form>
+
+    {% if selected_ing_ids %}
+    <div class="active-tags">
+        {% for ing in all_ingredients %}
+            {% if ing.id in selected_ing_ids %}
+            <span class="active-tag">
+                {{ ing.name }}
+                <button type="button" onclick="removeIngredient({{ ing.id }})"
+                        class="active-tag__remove" aria-label="Прибрати">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                         stroke-width="2.5" stroke="currentColor" width="11" height="11">
+                        <path stroke-linecap="round" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </span>
+            {% endif %}
+        {% endfor %}
+        <button type="button" class="clear-all-btn"
+                onclick="clearAllAndSubmit()">Скинути все</button>
+    </div>
+    {% endif %}
+</div>
+
+{% if selected_ing_ids or search_query %}
+<div class="results-bar">
+    <span class="results-bar__count">
+        Знайдено: <strong>{{ dishes|length }}</strong>
+        {% if dishes|length == 1 %}страва{% elif dishes|length < 5 %}страви{% else %}страв{% endif %}
+    </span>
+    {% if selected_ing_ids %}
+    <span class="results-bar__hint">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+             stroke-width="2" stroke="currentColor" width="14" height="14">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 7h18M7 12h10M11 17h2"/>
+        </svg>
+        Відсортовано: спочатку страви які можна приготувати зараз
+    </span>
+    {% endif %}
+    {% if user and user.allergens %}
+    <span class="results-bar__allergen">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+             stroke-width="2" stroke="currentColor" width="14" height="14">
+            <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/>
+        </svg>
+        Алергени виключено
+    </span>
+    {% endif %}
+</div>
+{% endif %}
+
+{% if not dishes and (selected_ing_ids or search_query) %}
+<div class="empty-state">
+    <div class="empty-state__icon">🥲</div>
+    <p class="empty-state__text">Нічого не знайдено.<br>Спробуйте змінити інгредієнти або запит.</p>
+    <a href="/" class="btn-main" style="display:inline-block; margin-top:16px; text-decoration:none; padding: 12px 28px;">
+        Показати всі страви
+    </a>
+</div>
+{% else %}
 <div class="dishes-grid">
     {% for dish in dishes %}
-    <a href="/recipe/{{ dish.id }}" class="dish-card">
-        <img src="{{ url_for('static', path='images/' + dish.image) }}" alt="{{ dish.name }}" class="dish-img">
-        <div class="dish-info">
-            <h3>{{ dish.name }}</h3>
-            <div class="dish-meta">
-                <span>{{ dish.cooking_time }} хв</span>
-                {% if dish.rating > 0 %}
-                <span class="rating-badge">⭐ {{ dish.rating }} / 10</span>
+    <a href="/recipe/{{ dish.id }}" class="dish-card{% if dish_missing and dish_missing.get(dish.id, 0) == 0 and selected_ing_ids %} dish-card--ready{% endif %}">
+        <div class="dish-img-wrap">
+            <img src="{{ url_for('static', path='images/' + dish.image) }}"
+                 alt="{{ dish.name }}" class="dish-img" loading="lazy">
+            {% if dish_missing and dish.id in dish_missing %}
+                {% set missing = dish_missing[dish.id] %}
+                {% if missing == 0 %}
+                <span class="dish-card__badge dish-card__badge--ready">✓ Можна готувати</span>
+                {% else %}
+                <span class="dish-card__badge dish-card__badge--missing">– {{ missing }} інгр.</span>
                 {% endif %}
+            {% elif dish.rating > 0 %}
+            <span class="dish-card__rating">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor"
+                     viewBox="0 0 20 20" width="12" height="12">
+                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                </svg>
+                {{ dish.rating }}
+            </span>
+            {% endif %}
+        </div>
+        <div class="dish-info">
+            <h3 class="dish-name">{{ dish.name }}</h3>
+            <div class="dish-meta">
+                <span class="dish-meta__item">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                         stroke-width="1.8" stroke="currentColor" width="14" height="14">
+                        <path stroke-linecap="round" d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z"/>
+                    </svg>
+                    {{ dish.calories }} ккал
+                </span>
+                <span class="dish-meta__item">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                         stroke-width="1.8" stroke="currentColor" width="14" height="14">
+                        <path stroke-linecap="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    {{ dish.cooking_time }} хв
+                </span>
             </div>
         </div>
     </a>
-    {% else %}
-    <p style="text-align: center; grid-column: 1/-1;">На жаль, за вашим запитом нічого не знайдено.</p>
     {% endfor %}
 </div>
+{% endif %}
+
+<style>
+.page-hero {
+    text-align: center;
+    padding: 52px 20px 32px;
+    position: relative;
+}
+.hero-title {
+    font-size: clamp(28px, 5vw, 42px);
+    font-weight: 800;
+    color: var(--text-main);
+    margin: 0 0 10px;
+    line-height: 1.2;
+    letter-spacing: -0.5px;
+}
+.hero-sub {
+    font-size: 15px;
+    color: #9a8574;
+    margin: 0 0 32px;
+    font-weight: 400;
+}
+
+.search-pill {
+    display: flex;
+    align-items: center;
+    max-width: 640px;
+    margin: 0 auto;
+    background: var(--white);
+    border-radius: 50px;
+    box-shadow: 0 4px 24px rgba(212,163,115,.18), 0 1px 4px rgba(0,0,0,.06);
+    padding: 6px 6px 6px 20px;
+    gap: 0;
+    transition: box-shadow .25s;
+    position: relative;
+}
+.search-pill:focus-within {
+    box-shadow: 0 4px 32px rgba(212,163,115,.35), 0 1px 4px rgba(0,0,0,.06);
+}
+.search-pill__icon {
+    width: 18px; height: 18px;
+    color: #bba899;
+    flex-shrink: 0;
+    margin-right: 10px;
+}
+.search-pill__input {
+    flex: 1;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 15px;
+    color: var(--text-main);
+    min-width: 0;
+}
+.search-pill__input::placeholder { color: #c4b0a0; }
+.search-pill__divider {
+    width: 1px; height: 28px;
+    background: #ecdfd3;
+    margin: 0 12px;
+    flex-shrink: 0;
+}
+.search-pill__filter-btn {
+    display: flex; align-items: center; gap: 7px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text-main);
+    padding: 6px 4px;
+    white-space: nowrap;
+    transition: color .2s;
+    position: relative;
+}
+.search-pill__filter-btn:hover { color: var(--primary-color); }
+.filter-badge {
+    background: var(--primary-color);
+    color: #fff;
+    border-radius: 50%;
+    width: 19px; height: 19px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; line-height: 1;
+}
+.search-pill__submit {
+    background: var(--primary-color);
+    color: #fff;
+    border: none;
+    border-radius: 40px;
+    padding: 10px 22px;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-left: 10px;
+    transition: background .2s, transform .15s;
+    white-space: nowrap;
+}
+.search-pill__submit:hover {
+    background: var(--primary-hover);
+    transform: scale(1.03);
+}
+
+.ing-panel {
+    display: none;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    top: calc(100% + 10px);
+    width: min(440px, 96vw);
+    background: #fffdf9;
+    border-radius: 20px;
+    box-shadow: 0 16px 48px rgba(0,0,0,.13), 0 2px 8px rgba(0,0,0,.06);
+    z-index: 200;
+    overflow: hidden;
+    border: 1px solid #f0e6d9;
+    animation: panelIn .2s ease;
+}
+.ing-panel.is-open { display: block; }
+@keyframes panelIn {
+    from { opacity:0; transform: translateX(-50%) translateY(-8px); }
+    to   { opacity:1; transform: translateX(-50%) translateY(0); }
+}
+
+.ing-panel__header {
+    padding: 16px 16px 8px;
+    border-bottom: 1px solid #f0e6d9;
+}
+.ing-panel__search-wrap {
+    display: flex; align-items: center; gap: 8px;
+    background: #f7f0e8;
+    border-radius: 10px;
+    padding: 8px 12px;
+    margin-bottom: 10px;
+}
+.ing-panel__search {
+    border: none; outline: none; background: transparent;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 13.5px; color: var(--text-main);
+    width: 100%;
+}
+.ing-panel__search::placeholder { color: #bba899; }
+.ing-panel__sort {
+    display: flex; gap: 6px;
+}
+.sort-chip {
+    padding: 4px 14px;
+    border-radius: 20px;
+    border: 1.5px solid #e8d9c8;
+    background: transparent;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 12px; font-weight: 600;
+    color: #9a8574;
+    cursor: pointer;
+    transition: all .15s;
+}
+.sort-chip.active {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    color: #fff;
+}
+.sort-chip:not(.active):hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.ing-panel__list {
+    max-height: 260px;
+    overflow-y: auto;
+    padding: 6px 0;
+    scrollbar-width: thin;
+    scrollbar-color: #e0cebc transparent;
+}
+.ing-panel__list::-webkit-scrollbar { width: 4px; }
+.ing-panel__list::-webkit-scrollbar-thumb {
+    background: #e0cebc; border-radius: 4px;
+}
+
+.ing-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 16px;
+    cursor: pointer;
+    transition: background .12s;
+    border-radius: 0;
+}
+.ing-row:hover { background: #fdf5ec; }
+.ing-row--checked { background: #fdf0e3; }
+.ing-row--checked:hover { background: #fae8d4; }
+
+.visually-hidden {
+    position: absolute; width: 1px; height: 1px;
+    overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap;
+}
+.ing-row__check { flex-shrink: 0; }
+.ing-row__box {
+    width: 18px; height: 18px;
+    border: 2px solid #ddd0bc;
+    border-radius: 5px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all .15s;
+    background: #fff;
+    position: relative;
+}
+.ing-row--checked .ing-row__box {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+}
+.ing-row--checked .ing-row__box::after {
+    content: '';
+    width: 10px; height: 6px;
+    border-left: 2px solid #fff;
+    border-bottom: 2px solid #fff;
+    transform: rotate(-45deg) translateY(-1px);
+    display: block;
+}
+.ing-row__name {
+    flex: 1;
+    font-size: 14px;
+    color: var(--text-main);
+    font-weight: 500;
+}
+.ing-row__pill {
+    font-size: 11px;
+    font-weight: 600;
+    color: #bba899;
+    background: #f5ece0;
+    border-radius: 20px;
+    padding: 2px 8px;
+    min-width: 24px;
+    text-align: center;
+}
+
+.ing-panel__footer {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 16px;
+    border-top: 1px solid #f0e6d9;
+    background: #fdf8f2;
+}
+.ing-btn {
+    border-radius: 12px;
+    padding: 9px 20px;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 13px; font-weight: 700;
+    cursor: pointer;
+    transition: all .18s;
+    border: none;
+}
+.ing-btn--ghost {
+    background: transparent;
+    color: #9a8574;
+    border: 1.5px solid #e8d9c8;
+}
+.ing-btn--ghost:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+.ing-btn--primary {
+    background: var(--primary-color);
+    color: #fff;
+    display: flex; align-items: center; gap: 6px;
+}
+.ing-btn--primary:hover { background: var(--primary-hover); }
+.apply-count {
+    background: rgba(255,255,255,.3);
+    border-radius: 10px;
+    padding: 1px 7px;
+    font-size: 12px;
+    min-width: 18px;
+    text-align: center;
+}
+
+.active-tags {
+    display: flex; flex-wrap: wrap; align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 16px;
+    max-width: 640px;
+    margin-left: auto; margin-right: auto;
+}
+.active-tag {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: #fff8f0;
+    border: 1.5px solid var(--primary-color);
+    color: var(--primary-hover);
+    border-radius: 20px;
+    padding: 5px 12px;
+    font-size: 13px; font-weight: 600;
+    animation: tagIn .18s ease;
+}
+@keyframes tagIn {
+    from { opacity:0; transform: scale(.88); }
+    to   { opacity:1; transform: scale(1); }
+}
+.active-tag__remove {
+    background: none; border: none; cursor: pointer;
+    color: var(--primary-color);
+    display: flex; align-items: center; justify-content: center;
+    padding: 1px;
+    opacity: .7; transition: opacity .15s;
+}
+.active-tag__remove:hover { opacity: 1; }
+.clear-all-btn {
+    background: none; border: none;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 12px; font-weight: 600;
+    color: #bba899;
+    cursor: pointer;
+    padding: 5px 6px;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    transition: color .15s;
+}
+.clear-all-btn:hover { color: var(--primary-hover); }
+
+.results-bar {
+    display: flex; align-items: center; gap: 16px;
+    padding: 0 4px 12px;
+    font-size: 13.5px;
+    color: #9a8574;
+}
+.results-bar__count strong { color: var(--text-main); font-weight: 700; }
+.results-bar__allergen {
+    display: flex; align-items: center; gap: 5px;
+    background: #f0faf0;
+    border: 1px solid #b2d8b2;
+    color: #4a7c4a;
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-size: 12px; font-weight: 600;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+}
+.empty-state__icon { font-size: 48px; margin-bottom: 12px; }
+.empty-state__text {
+    color: #9a8574;
+    font-size: 15px;
+    line-height: 1.6;
+}
+
+.dish-img-wrap { position: relative; overflow: hidden; }
+.dish-card__rating {
+    position: absolute; top: 10px; right: 10px;
+    background: rgba(255,255,255,.92);
+    backdrop-filter: blur(4px);
+    border-radius: 20px;
+    padding: 4px 9px;
+    font-size: 12px; font-weight: 700;
+    color: var(--primary-hover);
+    display: flex; align-items: center; gap: 4px;
+    box-shadow: 0 2px 6px rgba(0,0,0,.08);
+}
+.dish-card__badge {
+    position: absolute; top: 10px; right: 10px;
+    border-radius: 20px;
+    padding: 4px 10px;
+    font-size: 11.5px; font-weight: 700;
+    box-shadow: 0 2px 8px rgba(0,0,0,.12);
+}
+.dish-card__badge--ready {
+    background: #e8f5e9;
+    color: #2e7d32;
+    border: 1px solid #a5d6a7;
+}
+.dish-card__badge--missing {
+    background: rgba(255,255,255,.92);
+    backdrop-filter: blur(4px);
+    color: #9a8574;
+    border: 1px solid #e0cebc;
+}
+.dish-card--ready {
+    box-shadow: 0 4px 15px rgba(76,175,80,.15);
+}
+.dish-card--ready:hover {
+    box-shadow: 0 8px 25px rgba(76,175,80,.25);
+}
+.results-bar__hint {
+    display: flex; align-items: center; gap: 5px;
+    color: #9a8574; font-size: 12px; font-weight: 500;
+    font-style: italic;
+}
+.dish-name {
+    font-size: 15px; font-weight: 700;
+    margin: 0 0 10px;
+    color: var(--text-main);
+    line-height: 1.3;
+}
+.dish-meta {
+    display: flex; gap: 14px;
+    font-size: 12.5px; color: #9a8574; font-weight: 500;
+}
+.dish-meta__item {
+    display: flex; align-items: center; gap: 4px;
+}
+</style>
+
+<script>
+(function() {
+    // ── Стан ────────────────────────────────────────────
+    let panelOpen = false;
+    let currentSort = 'alpha';
+
+    // Читаємо початково вибрані id з hidden inputs (від сервера)
+    const selectedIds = new Set(
+        Array.from(document.querySelectorAll('#hiddenIngInputs input[name="ing"]'))
+             .map(i => parseInt(i.value))
+    );
+
+    const ingPanel    = document.getElementById('ingPanel');
+    const ingToggleBtn = document.getElementById('ingToggleBtn');
+    const searchForm  = document.getElementById('searchForm');
+    const applyCountEl = document.getElementById('applyCount');
+
+    // ── Відкрити / закрити панель ────────────────────────
+    function openPanel() {
+        panelOpen = true;
+        ingPanel.classList.add('is-open');
+        renderCheckboxes();
+        setTimeout(() => document.getElementById('ingSearchInput').focus(), 60);
+    }
+
+    function closePanel() {
+        panelOpen = false;
+        ingPanel.classList.remove('is-open');
+    }
+
+    window.toggleIngDropdown = function() {
+        panelOpen ? closePanel() : openPanel();
+    };
+
+    // Закрити при кліку поза панеллю
+    document.addEventListener('click', function(e) {
+        if (!panelOpen) return;
+        if (ingPanel.contains(e.target)) return;
+        if (ingToggleBtn.contains(e.target)) return;
+        closePanel();
+    }, true); // capture phase — до будь-якого іншого обробника
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && panelOpen) closePanel();
+    });
+
+    // ── Рендер чекбоксів за selectedIds ─────────────────
+    function renderCheckboxes() {
+        document.querySelectorAll('.ing-row').forEach(row => {
+            const id = parseInt(row.dataset.id);
+            const checked = selectedIds.has(id);
+            const cb = row.querySelector('.ing-checkbox');
+            if (cb) cb.checked = checked;
+            row.classList.toggle('ing-row--checked', checked);
+        });
+        updateApplyCount();
+    }
+
+    // ── Клік по рядку інгредієнта ────────────────────────
+    // Вішаємо на ingList один делегований обробник
+    document.getElementById('ingList').addEventListener('click', function(e) {
+        const row = e.target.closest('.ing-row');
+        if (!row) return;
+
+        // Не допускаємо подвійний тогл від label+checkbox
+        e.preventDefault();
+
+        const id = parseInt(row.dataset.id);
+        if (selectedIds.has(id)) {
+            selectedIds.delete(id);
+        } else {
+            selectedIds.add(id);
+        }
+
+        const cb = row.querySelector('.ing-checkbox');
+        if (cb) cb.checked = selectedIds.has(id);
+        row.classList.toggle('ing-row--checked', selectedIds.has(id));
+        updateApplyCount();
+    });
+
+    // ── Лічильник на кнопці ──────────────────────────────
+    function updateApplyCount() {
+        const n = selectedIds.size;
+        applyCountEl.textContent = n > 0 ? n : '';
+        applyCountEl.style.display = n > 0 ? 'inline-flex' : 'none';
+    }
+
+    // ── Пошук в панелі ───────────────────────────────────
+    window.filterIngredients = function(query) {
+        const q = query.toLowerCase().trim();
+        document.querySelectorAll('.ing-row').forEach(item => {
+            item.style.display = (!q || item.dataset.name.includes(q)) ? 'flex' : 'none';
+        });
+    };
+
+    // ── Сортування ───────────────────────────────────────
+    window.sortIngredients = function(by) {
+        currentSort = by;
+        document.getElementById('sortAlpha').classList.toggle('active', by === 'alpha');
+        document.getElementById('sortCount').classList.toggle('active', by === 'count');
+        const list = document.getElementById('ingList');
+        Array.from(list.querySelectorAll('.ing-row'))
+            .sort((a, b) => by === 'alpha'
+                ? a.dataset.name.localeCompare(b.dataset.name, 'uk')
+                : parseInt(b.dataset.count) - parseInt(a.dataset.count))
+            .forEach(item => list.appendChild(item));
+    };
+
+    // ── Очистити всі ─────────────────────────────────────
+    window.clearIngredients = function() {
+        selectedIds.clear();
+        renderCheckboxes();
+    };
+
+    // ── Застосувати ──────────────────────────────────────
+    window.applyIngredients = function() {
+        const container = document.getElementById('hiddenIngInputs');
+        container.innerHTML = '';
+        selectedIds.forEach(id => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'ing';
+            input.value = id;
+            container.appendChild(input);
+        });
+        searchForm.submit();
+    };
+
+    // ── Видалити один тег ────────────────────────────────
+    window.removeIngredient = function(id) {
+        selectedIds.delete(parseInt(id));
+        window.applyIngredients();
+    };
+
+    // ── Скинути все ──────────────────────────────────────
+    window.clearAllAndSubmit = function() {
+        selectedIds.clear();
+        document.getElementById('hiddenIngInputs').innerHTML = '';
+        searchForm.submit();
+    };
+
+    // Ініціалізація лічильника на старті
+    updateApplyCount();
+})();
+</script>
 
 {% endblock %}
