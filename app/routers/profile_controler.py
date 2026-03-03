@@ -15,11 +15,17 @@ router = APIRouter(tags=["Profile"])
 templates = Jinja2Templates(directory="templates")
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+AVATARS_DIR = "static/images/avatars"
+ALLOWED_IMAGE_EXTENSIONS = {"jpg", "jpeg", "png", "gif", "webp"}
+
+
 def hash_password(password: str):
     return pwd_context.hash(password)
 
+
 def verify_password(plain_password: str, hashed_password: str):
     return pwd_context.verify(plain_password, hashed_password)
+
 
 def get_current_user(request: Request, db: Session):
     username = request.session.get("user")
@@ -27,9 +33,11 @@ def get_current_user(request: Request, db: Session):
         return None
     return db.query(models.User).filter(models.User.username == username).first()
 
+
 @router.get("/register")
 async def register_page(request: Request):
     return templates.TemplateResponse("register.html", {"request": request})
+
 
 @router.post("/register")
 def register(
@@ -53,10 +61,12 @@ def register(
     db.commit()
     return RedirectResponse(url="/login?registered=1", status_code=303)
 
+
 @router.get("/login")
 async def login_page(request: Request):
     message = "Реєстрація успішна! Увійдіть." if request.query_params.get("registered") else None
     return templates.TemplateResponse("login.html", {"request": request, "message": message})
+
 
 @router.post("/login")
 def login(
@@ -68,14 +78,15 @@ def login(
     user = db.query(models.User).filter(models.User.username == username).first()
     if not user or not verify_password(password, user.hashed_password):
         return templates.TemplateResponse("login.html", {"request": request, "error": "Невірні дані"})
-
     request.session["user"] = username
     return RedirectResponse(url="/", status_code=303)
+
 
 @router.get("/logout")
 def logout(request: Request):
     request.session.clear()
     return RedirectResponse(url="/login", status_code=303)
+
 
 @router.get("/profile")
 async def profile_page(request: Request, db: Session = Depends(get_db)):
@@ -83,6 +94,7 @@ async def profile_page(request: Request, db: Session = Depends(get_db)):
     if not user:
         return RedirectResponse(url="/login", status_code=303)
     return templates.TemplateResponse("profile.html", {"request": request, "user": user})
+
 
 @router.post("/profile/change-password")
 def change_password(
@@ -95,17 +107,16 @@ def change_password(
     user = get_current_user(request, db)
     if not user:
         return RedirectResponse(url="/login", status_code=303)
-
     if not verify_password(old_password, user.hashed_password):
         return templates.TemplateResponse("profile.html", {"request": request, "user": user, "error": "Невірний поточний пароль"})
     if new_password != new_password2:
         return templates.TemplateResponse("profile.html", {"request": request, "user": user, "error": "Нові паролі не співпадають"})
     if len(new_password) < 6:
         return templates.TemplateResponse("profile.html", {"request": request, "user": user, "error": "Мінімум 6 символів"})
-
     user.hashed_password = hash_password(new_password)
     db.commit()
     return templates.TemplateResponse("profile.html", {"request": request, "user": user, "message": "Пароль змінено!"})
+
 
 @router.get("/profile/edit")
 async def edit_profile_page(request: Request, db: Session = Depends(get_db)):
@@ -114,12 +125,12 @@ async def edit_profile_page(request: Request, db: Session = Depends(get_db)):
         return RedirectResponse(url="/login", status_code=303)
     return templates.TemplateResponse("profile_edit.html", {"request": request, "user": user})
 
+
 @router.post("/profile/edit")
-def edit_profile(
+async def edit_profile(
     request: Request,
     username: str = Form(...),
-    email: str = Form(""),
-    goals: list[str] = Form(default=[]),
+    allergens: str = Form(""),
     avatar: UploadFile = File(None),
     db: Session = Depends(get_db)
 ):
@@ -136,26 +147,28 @@ def edit_profile(
         user.username = username
         request.session["user"] = username
 
-    user.email = email
-    user.goals = ", ".join(goals)
+    user.allergens = allergens.strip()
 
     if avatar and avatar.filename:
-        avatars_dir = "static/images/avatars"
-        os.makedirs(avatars_dir, exist_ok=True)
-
-        file_ext = avatar.filename.split(".")[-1]
-        unique_filename = f"{user.id}_{uuid.uuid4().hex}.{file_ext}"
-        file_path = os.path.join(avatars_dir, unique_filename)
-
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(avatar.file, buffer)
-
+        ext = avatar.filename.rsplit(".", 1)[-1].lower()
+        if ext not in ALLOWED_IMAGE_EXTENSIONS:
+            return templates.TemplateResponse("profile_edit.html", {
+                "request": request, "user": user,
+                "error": "Дозволені формати: jpg, jpeg, png, gif, webp"
+            })
+        os.makedirs(AVATARS_DIR, exist_ok=True)
+        if user.avatar:
+            old_path = os.path.join("static", user.avatar)
+            if os.path.exists(old_path):
+                os.remove(old_path)
+        unique_filename = f"{user.id}_{uuid.uuid4().hex}.{ext}"
+        file_path = os.path.join(AVATARS_DIR, unique_filename)
+        contents = await avatar.read()
+        with open(file_path, "wb") as f:
+            f.write(contents)
         user.avatar = f"images/avatars/{unique_filename}"
 
     db.commit()
-
     return templates.TemplateResponse("profile_edit.html", {
-        "request": request,
-        "user": user,
-        "message": "Профіль успішно оновлено!"
+        "request": request, "user": user, "message": "Профіль успішно оновлено!"
     })
