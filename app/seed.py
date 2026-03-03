@@ -3,6 +3,25 @@ import models
 
 models.Base.metadata.create_all(bind=engine)
 
+INGREDIENT_ALLERGENS = {
+    "Яловичина":        "Яловичина",
+    "Куряче філе":      "Курятина",
+    "Свинина":          "Свинина",
+    "Бекон":            "Свинина",
+    "Сосиски":          "Свинина,Глютен",
+    "Борошно":          "Глютен,Пшениця",
+    "Спагеті":          "Глютен,Пшениця",
+    "Молоко":           "Молоко,Лактоза",
+    "Вершки":           "Молоко,Лактоза",
+    "Вершкове масло":   "Молоко,Лактоза",
+    "Пармезан":         "Молоко,Лактоза",
+    "Яйця":             "Яйця",
+    "Квасоля":          "Соя",
+    "Нут":              "Соя",
+    "Тахіні":           "Горіхи,Кунжут",
+    "Сало":             "Свинина",
+}
+
 DISHES = [
     (
         "Український Борщ",
@@ -121,9 +140,14 @@ def get_or_create_ingredient(db, name: str):
     name = name.strip()
     ing = db.query(models.Ingredient).filter(models.Ingredient.name == name).first()
     if not ing:
-        ing = models.Ingredient(name=name)
+        ing = models.Ingredient(
+            name=name,
+            allergen_tags=INGREDIENT_ALLERGENS.get(name, "")
+        )
         db.add(ing)
         db.flush()
+    else:
+        ing.allergen_tags = INGREDIENT_ALLERGENS.get(name, "")
     return ing
 
 
