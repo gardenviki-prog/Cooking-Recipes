@@ -6,3 +6,4 @@ passlib[bcrypt]
 python-multipart
 itsdangerous
 psycopg2-binary
+bcrypt==4.0.1
