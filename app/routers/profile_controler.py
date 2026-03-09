@@ -1,5 +1,4 @@
 import os
-import shutil
 import uuid
 
 from fastapi import APIRouter, Request, Depends, Form, UploadFile, File
