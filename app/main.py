@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
-from database import engine
+from app.database import engine
 import models
 
 from routers import profile_controler, search_controler, comments_controler

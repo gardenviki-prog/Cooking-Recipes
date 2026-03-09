@@ -19,7 +19,6 @@ class Ingredient(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(100), unique=True, index=True, nullable=False)
     allergen_tags = Column(Text, nullable=True, default="")
-
     dish_ingredients = relationship("DishIngredient", back_populates="ingredient")
 
 
