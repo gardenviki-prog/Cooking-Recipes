@@ -18,7 +18,8 @@ AVATARS_DIR = "static/images/avatars"
 ALLOWED_IMAGE_EXTENSIONS = {"jpg", "jpeg", "png", "gif", "webp"}
 
 
-def hash_password(password: str):
+def hash_password(password: str) -> str:
+    password = password[:72]
     return pwd_context.hash(password)
 
 
