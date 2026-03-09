@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, ForeignKey, Float, DateTime, Table
+from sqlalchemy import Column, Integer, String, Text, ForeignKey, Float, DateTime
 from sqlalchemy.orm import relationship
 from database import Base
 from datetime import datetime
@@ -18,7 +18,7 @@ class Ingredient(Base):
     __tablename__ = "ingredients"
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(100), unique=True, index=True, nullable=False)
-
+    allergen_tags = Column(Text, nullable=True, default="")
     dish_ingredients = relationship("DishIngredient", back_populates="ingredient")
 
 

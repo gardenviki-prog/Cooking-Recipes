@@ -20,11 +20,113 @@
 }
 
 .ingredients-list { list-style: none; padding: 0; }
-.ingredients-list li { padding: 10px 0; border-bottom: 1px solid #eee; }
+.ingredients-list li { padding: 10px 0; border-bottom: 1px solid #eee; display: flex; align-items: center; gap: 8px; }
 .steps-list { padding-left: 20px; }
 .steps-list li { margin-bottom: 15px; line-height: 1.6; }
 .btn-review { display: inline-block; background: #b8a080; color: white; padding: 12px 25px; border-radius: 25px; text-decoration: none; font-weight: bold; margin-top: 20px; text-align: center; transition: 0.3s; }
 .btn-review:hover { background: #a38b6d; }
+
+/* Алергени */
+.ingredient-danger {
+    color: #c0392b;
+    font-weight: 600;
+}
+.ingredient-danger-icon {
+    font-size: 15px;
+    flex-shrink: 0;
+}
+.allergen-tags {
+    display: inline-flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    margin-left: 4px;
+}
+.allergen-tag {
+    font-size: 11px;
+    background: #fdecea;
+    color: #c0392b;
+    border-radius: 10px;
+    padding: 1px 7px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+.allergen-tag-neutral {
+    font-size: 11px;
+    background: #f0f0f0;
+    color: #888;
+    border-radius: 10px;
+    padding: 1px 7px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+/* Блок попередження про алергени страви */
+.allergen-warning-block {
+    margin: 0 40px 0 40px;
+    padding: 14px 18px;
+    background: #fef9f0;
+    border-left: 4px solid #e67e22;
+    border-radius: 8px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+.allergen-warning-block-safe {
+    margin: 0 40px 0 40px;
+    padding: 14px 18px;
+    background: #f0faf4;
+    border-left: 4px solid #27ae60;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.allergen-warning-title {
+    font-weight: 700;
+    font-size: 14px;
+    color: #c0392b;
+    margin-bottom: 6px;
+}
+.allergen-warning-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 4px;
+}
+.allergen-warning-tag {
+    font-size: 12px;
+    background: #fdecea;
+    color: #c0392b;
+    border-radius: 12px;
+    padding: 3px 10px;
+    font-weight: 600;
+}
+.allergen-info-block {
+    margin: 0 40px 0 40px;
+    padding: 14px 18px;
+    background: #faf7f2;
+    border-left: 4px solid #b8a080;
+    border-radius: 8px;
+}
+.allergen-info-title {
+    font-weight: 700;
+    font-size: 13px;
+    color: #7a6a55;
+    margin-bottom: 6px;
+}
+.allergen-info-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+.allergen-info-tag {
+    font-size: 12px;
+    background: #ede8de;
+    color: #7a6a55;
+    border-radius: 12px;
+    padding: 2px 9px;
+}
+.allergen-spacer { height: 20px; }
 
 .reviews-section { padding: 40px; background: #fff; border-top: 1px solid #f0f0f0; }
 .reviews-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
@@ -94,9 +196,69 @@
             <h3>Інгредієнти</h3>
             <ul class="ingredients-list">
                 {% for item in ingredients %}
-                    {% if item.strip() %}<li>{{ item.strip() }}</li>{% endif %}
+                    <li>
+                        {% if item.danger %}
+                            <span class="ingredient-danger-icon">⚠️</span>
+                            <span class="ingredient-danger">{{ item.text }}</span>
+                            <span class="allergen-tags">
+                                {% for tag in item.danger %}
+                                    <span class="allergen-tag">{{ tag }}</span>
+                                {% endfor %}
+                            </span>
+                        {% elif item.all_tags %}
+                            <span style="flex-shrink:0; font-size:15px; color:#ccc;">🏷</span>
+                            <span>{{ item.text }}</span>
+                            <span class="allergen-tags">
+                                {% for tag in item.all_tags %}
+                                    <span class="allergen-tag-neutral">{{ tag }}</span>
+                                {% endfor %}
+                            </span>
+                        {% else %}
+                            <span>{{ item.text }}</span>
+                        {% endif %}
+                    </li>
                 {% endfor %}
             </ul>
+
+            {# ===== БЛОК АЛЕРГЕНІВ ПІД ІНГРЕДІЄНТАМИ ===== #}
+            {% if user and user_allergen_set %}
+                {% set danger_tags = namespace(found=[]) %}
+                {% for item in ingredients %}
+                    {% for tag in item.danger %}
+                        {% if tag not in danger_tags.found %}
+                            {% set danger_tags.found = danger_tags.found + [tag] %}
+                        {% endif %}
+                    {% endfor %}
+                {% endfor %}
+
+                {% if danger_tags.found %}
+                <div class="allergen-warning-block" style="margin: 16px 0 0 0;">
+                    <span style="font-size: 20px; flex-shrink: 0;">⚠️</span>
+                    <div>
+                        <div class="allergen-warning-title">Містить ваші алергени</div>
+                        <div class="allergen-warning-list">
+                            {% for tag in danger_tags.found %}
+                                <span class="allergen-warning-tag">{{ tag }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="allergen-warning-block-safe" style="margin: 16px 0 0 0;">
+                    <span style="font-size: 18px;">✅</span>
+                    <span style="font-size: 13px; color: #27ae60; font-weight: 600;">Жодного вашого алергену</span>
+                </div>
+                {% endif %}
+            {% elif dish_allergens_found %}
+                <div class="allergen-info-block" style="margin: 16px 0 0 0;">
+                    <div class="allergen-info-title">🏷 Алергени в страві</div>
+                    <div class="allergen-info-list">
+                        {% for tag in dish_allergens_found | sort %}
+                            <span class="allergen-info-tag">{{ tag }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
         </div>
         <div>
             <h3>Кроки приготування</h3>
@@ -134,7 +296,6 @@
                             </div>
                         </div>
 
-                        {# КНОПКА ВИДАЛЕННЯ #}
                         {% if user and user.id == review.user_id %}
                         <form action="/review/delete/{{ review.id }}" method="post" onsubmit="return confirm('Видалити ваш відгук?');">
                             <button type="submit" class="delete-btn" title="Видалити">×</button>
